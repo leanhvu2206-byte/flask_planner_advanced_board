@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="mb-3">Summary tổng hợp</h2>
+
+{% for board_name, summary in summaries.items() %}
+<div class="card mb-4 shadow-sm">
+  <div class="card-header bg-primary text-white fw-semibold">{{ board_name }}</div>
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-4">
+        <h6><span class="text-primary">●</span> In process ({{ summary.counts['In process'] }})</h6>
+        {% for t in summary['In process'] %}
+          <div class="border rounded p-2 mb-2">
+            <div class="fw-semibold">{{ t.title }}</div>
+            <small class="text-muted">{{ t.due_date }}</small>
+          </div>
+        {% else %}
+          <p class="text-muted">Không có task.</p>
+        {% endfor %}
+      </div>
+
+      <div class="col-md-4">
+        <h6><span class="text-success">●</span> Done ({{ summary.counts['Done'] }})</h6>
+        {% for t in summary['Done'] %}
+          <div class="border rounded p-2 mb-2">
+            <div class="fw-semibold">{{ t.title }}</div>
+            <small class="text-muted">{{ t.due_date }}</small>
+          </div>
+        {% else %}
+          <p class="text-muted">Không có task.</p>
+        {% endfor %}
+      </div>
+
+      <div class="col-md-4">
+        <h6><span class="text-danger">●</span> OverDue ({{ summary.counts['OverDue'] }})</h6>
+        {% for t in summary['OverDue'] %}
+          <div class="border rounded p-2 mb-2">
+            <div class="fw-semibold">{{ t.title }}</div>
+            <small class="text-muted">{{ t.due_date }}</small>
+          </div>
+        {% else %}
+          <p class="text-muted">Không có task.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% else %}
+<p class="text-muted">Bạn chưa có board nào.</p>
+{% endfor %}
+{% endblock %}

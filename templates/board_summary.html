@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+  .sum-wrap { background:#f8f9fa; border-radius:16px; padding:14px; box-shadow:0 1px 2px rgba(0,0,0,.03); }
+  .sum-head { display:flex; align-items:center; gap:.5rem; font-weight:600; margin:6px 0 10px; }
+  .dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+  .dot-ip { background:#0d6efd; }   /* In process */
+  .dot-done { background:#198754; } /* Done */
+  .dot-od { background:#dc3545; }   /* OverDue */
+  .pill { font-size:.8rem; padding:.15rem .5rem; border-radius:999px; }
+  .pill-ip { background:#e7f1ff; color:#0d6efd; }
+  .pill-done { background:#eaf7f1; color:#198754; }
+  .pill-od { background:#fdecee; color:#dc3545; }
+
+  .sum-card { background:#fff; border:1px solid #e9ecef; border-radius:12px; padding:10px 12px; margin-bottom:10px; }
+  .sum-title { font-weight:600; margin-bottom:4px; }
+  .sum-meta { font-size:.85rem; color:#6c757d; display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; }
+  .avatar { width:22px; height:22px; border-radius:50%; background:#e9ecef; display:inline-flex; align-items:center; justify-content:center; font-size:.7rem; color:#495057; border:1px solid #dee2e6; }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h4 mb-0">Summary — {{ board.name }}</h1>
+  <a class="btn btn-outline-secondary" href="{{ url_for('view_board', board_id=board.id) }}">Quay lại Board</a>
+</div>
+
+<div class="sum-wrap">
+  <!-- In process -->
+  <div class="sum-head">
+    <span class="dot dot-ip"></span>
+    <span>In process</span>
+    <span class="pill pill-ip">{{ summary.counts['In process'] }}</span>
+  </div>
+  {% for t in summary['In process'] %}
+  <div class="sum-card">
+    <div class="sum-title">{{ t.title }}</div>
+    <div class="sum-meta">
+      {% if t.assignees %}
+        {% for u in t.assignees %}
+          <span class="avatar" title="{{ u.name }}">{{ u.name.split(' ')[-1][:1] }}</span>
+        {% endfor %}
+      {% else %}
+        <span class="avatar" title="No assignee">V</span>
+      {% endif %}
+      {% if t.due_date %}
+        <span class="pill pill-ip">{{ t.due_date }}</span>
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+  <div class="text-muted mb-3">Không có task.</div>
+  {% endfor %}
+
+  <!-- Done -->
+  <div class="sum-head mt-2">
+    <span class="dot dot-done"></span>
+    <span>Done</span>
+    <span class="pill pill-done">{{ summary.counts['Done'] }}</span>
+  </div>
+  {% for t in summary['Done'] %}
+  <div class="sum-card">
+    <div class="sum-title">{{ t.title }}</div>
+    <div class="sum-meta">
+      {% for u in t.assignees %}
+        <span class="avatar" title="{{ u.name }}">{{ u.name.split(' ')[-1][:1] }}</span>
+      {% endfor %}
+      {% if t.due_date %}
+        <span class="pill pill-done">{{ t.due_date }}</span>
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+  <div class="text-muted mb-3">Không có task.</div>
+  {% endfor %}
+
+  <!-- OverDue -->
+  <div class="sum-head mt-2">
+    <span class="dot dot-od"></span>
+    <span>OverDue</span>
+    <span class="pill pill-od">{{ summary.counts['OverDue'] }}</span>
+  </div>
+  {% for t in summary['OverDue'] %}
+  <div class="sum-card">
+    <div class="sum-title">{{ t.title }}</div>
+    <div class="sum-meta">
+      {% for u in t.assignees %}
+        <span class="avatar" title="{{ u.name }}">{{ u.name.split(' ')[-1][:1] }}</span>
+      {% endfor %}
+      {% if t.due_date %}
+        <span class="pill pill-od">{{ t.due_date }}</span>
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+  <div class="text-muted">Không có task.</div>
+  {% endfor %}
+</div>
+
+{% endblock %}

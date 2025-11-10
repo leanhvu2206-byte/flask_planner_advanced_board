@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1 class="h4 mb-3">Danh sách thành viên</h1>
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <table class="table table-striped align-middle">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Tên</th>
+            <th>Email</th>
+            <th class="text-center" style="width:120px">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ u.name }}</td>
+            <td>{{ u.email }}</td>
+            <td class="text-center">
+              <form method="post"
+                    action="{{ url_for('delete_member', user_id=u.id) }}"
+                    onsubmit="return confirm('Bạn có chắc muốn xoá thành viên {{ u.name }} không?');">
+                <button class="btn btn-sm btn-outline-danger">
+                  Xoá
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="4" class="text-muted text-center">Chưa có thành viên nào.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

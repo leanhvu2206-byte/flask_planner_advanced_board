@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 class="mb-3">My Task</h2>
+
+<style>
+  .task-card{background:#fff;border:1px solid #e9ecef;border-radius:12px;padding:14px;margin-bottom:18px}
+  .section-title{display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem}
+  .table td,.table th{vertical-align:middle}
+  .w-actions{width:120px}
+</style>
+
+<!-- Section: From others -->
+<div class="task-card">
+  <div class="section-title">
+    <h5 class="mb-0">From others → Assigned to me</h5>
+    <span class="badge text-bg-secondary">{{ from_others|length }}</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-sm table-bordered align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Task</th>
+          <th>Board / List</th>
+          <th>Start</th>
+          <th>Due</th>
+          <th>Status</th>
+          <th>%</th>
+          <th>Priority</th>
+          <th class="w-actions text-center">Mở</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in from_others %}
+        <tr>
+          <td class="fw-semibold">{{ t.title }}</td>
+          <td>
+            {{ t.list.board.name if t.list and t.list.board else '' }}
+            {% if t.list %}<small class="text-muted"> / {{ t.list.title }}</small>{% endif %}
+          </td>
+          <td>{{ t.start_date or '' }}</td>
+          <td>{{ t.due_date or '' }}</td>
+
+          {% set stc='secondary' %}
+          {% if t.status=='Done' %}{% set stc='success' %}{% elif t.status=='OverDue' %}{% set stc='danger' %}{% endif %}
+          <td><span class="badge bg-{{ stc }}">{{ t.status }}</span></td>
+
+          <td>{{ t.percentage }}%</td>
+
+          {% set pc='primary' %}
+          {% if t.priority=='Low' %}{% set pc='secondary' %}
+          {% elif t.priority=='High' %}{% set pc='warning' %}
+          {% elif t.priority=='Urgent' %}{% set pc='danger' %}{% endif %}
+          <td><span class="badge bg-{{ pc }}">{{ t.priority }}</span></td>
+
+          <td class="text-center">
+            <a class="btn btn-sm btn-outline-primary"
+               href="{{ url_for('view_board', board_id=t.list.board_id) if t.list else url_for('dashboard') }}">
+              Xem
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="text-center text-muted">Không có task.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Section: Self-assigned -->
+<div class="task-card">
+  <div class="section-title">
+    <h5 class="mb-0">Self-assigned</h5>
+    <span class="badge text-bg-secondary">{{ self_assigned|length }}</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-sm table-bordered align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Task</th>
+          <th>Board / List</th>
+          <th>Start</th>
+          <th>Due</th>
+          <th>Status</th>
+          <th>%</th>
+          <th>Priority</th>
+          <th class="w-actions text-center">Mở</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in self_assigned %}
+        <tr>
+          <td class="fw-semibold">{{ t.title }}</td>
+          <td>
+            {{ t.list.board.name if t.list and t.list.board else '' }}
+            {% if t.list %}<small class="text-muted"> / {{ t.list.title }}</small>{% endif %}
+          </td>
+          <td>{{ t.start_date or '' }}</td>
+          <td>{{ t.due_date or '' }}</td>
+
+          {% set stc='secondary' %}
+          {% if t.status=='Done' %}{% set stc='success' %}{% elif t.status=='OverDue' %}{% set stc='danger' %}{% endif %}
+          <td><span class="badge bg-{{ stc }}">{{ t.status }}</span></td>
+
+          <td>{{ t.percentage }}%</td>
+
+          {% set pc='primary' %}
+          {% if t.priority=='Low' %}{% set pc='secondary' %}
+          {% elif t.priority=='High' %}{% set pc='warning' %}
+          {% elif t.priority=='Urgent' %}{% set pc='danger' %}{% endif %}
+          <td><span class="badge bg-{{ pc }}">{{ t.priority }}</span></td>
+
+          <td class="text-center">
+            <a class="btn btn-sm btn-outline-primary"
+               href="{{ url_for('view_board', board_id=t.list.board_id) if t.list else url_for('dashboard') }}">
+              Xem
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="text-center text-muted">Không có task.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

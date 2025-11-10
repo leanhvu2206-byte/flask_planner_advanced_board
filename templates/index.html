@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+  /* ===== Nền gradient chuyên nghiệp + chuyển động rất nhẹ ===== */
+  .hero-bg{
+    position:fixed; inset:0; z-index:-1;
+    background:
+      radial-gradient(900px 520px at -12% -8%, #e8f1ff 0%, transparent 60%),
+      radial-gradient(860px 480px at 115% 0%, #eafaf0 0%, transparent 60%),
+      linear-gradient(120deg, #f8fbff, #ffffff);
+    animation: bgFloat 14s ease-in-out infinite alternate;
+  }
+  @keyframes bgFloat{
+    0% { background-position: 0 0, 0 0, 0 0; }
+    100%{ background-position: 5% 2%, -4% 5%, 0 0; }
+  }
+  .blob{
+    position: fixed; border-radius: 50%; filter: blur(26px); opacity:.40; z-index:-1;
+    animation: move 24s ease-in-out infinite alternate;
+  }
+  .blob.b1{ width: 360px; height:360px; left:-120px; top:120px; background:#cfe2ff;}
+  .blob.b2{ width: 280px; height:280px; right:-90px; top:70px; background:#d1f1e0; animation-duration:20s;}
+  .blob.b3{ width: 420px; height:420px; right:8%; bottom:-140px; background:#ffe7c2; animation-duration:28s;}
+  @keyframes move{0%{transform:translate(0,0)}100%{transform:translate(20px,-12px)}}
+
+  /* ===== Hero card ===== */
+  .hero-wrap{min-height: calc(100vh - 130px); display:flex; align-items:center;}
+  .glass{
+    backdrop-filter: blur(10px);
+    background: rgba(255,255,255,.78);
+    border: 1px solid rgba(0,0,0,.06);
+    border-radius: 20px;
+    box-shadow: 0 12px 44px rgba(0,0,0,.06);
+  }
+  .hero-title{font-weight:800; letter-spacing:.3px}
+  .hero-sub{color:#6c757d}
+  .feature i{color:#198754}
+  .hero-cta .btn{height:44px}
+  .illu{
+    background: conic-gradient(from 180deg at 50% 50%, #fff 0%, #f8f9ff 25%, #eef6ff 50%, #fff 75%, #f7fbff 100%);
+    border:1px solid #eef0f2; border-radius:16px; height:240px;
+    display:grid; place-items:center;
+  }
+  .badge-brand{background:#fff3cd; border:1px solid #ffe69c; color:#8a6d3b}
+</style>
+
+<!-- background -->
+<div class="hero-bg"></div>
+<div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+
+<div class="hero-wrap">
+  <div class="container">
+    <div class="row g-4 align-items-center justify-content-center">
+      <div class="col-12 col-lg-10">
+        <div class="glass p-4 p-md-5">
+          <div class="row g-4 align-items-center">
+            <!-- Text -->
+            <div class="col-md-7">
+              <span class="badge badge-brand mb-2">
+                <i class="bi bi-check2-circle me-1"></i> Planner cho đội chất lượng
+              </span>
+              <h1 class="display-6 hero-title mb-2">
+                Chào mừng đến <span class="text-warning">Planner Quality ZVN Team</span>
+              </h1>
+              <p class="hero-sub mb-4">
+                Lập kế hoạch, theo dõi tiến độ, kiểm soát hạn và cộng tác hiệu quả trong một nền tảng.
+              </p>
+
+              <div class="row row-cols-1 row-cols-sm-2 g-2 mb-4">
+                <div class="col feature">
+                  <i class="bi bi-columns-gap me-2"></i><strong>Board</strong> & Task linh hoạt
+                </div>
+                <div class="col feature">
+                  <i class="bi bi-bar-chart-line-fill me-2"></i><strong>Chart</strong> & Summary trực quan
+                </div>
+                <div class="col feature">
+                  <i class="bi bi-bell-fill me-2"></i><strong>Notification</strong> theo thời gian thực
+                </div>
+                <div class="col feature">
+                  <i class="bi bi-people-fill me-2"></i>Phân công & Thành viên
+                </div>
+              </div>
+
+              <div class="hero-cta d-flex gap-2">
+                <a href="{{ url_for('login') }}" class="btn btn-primary">
+                  <i class="bi bi-box-arrow-in-right me-1"></i> Đăng nhập
+                </a>
+                <a href="{{ url_for('register') }}" class="btn btn-success">
+                  <i class="bi bi-person-plus-fill me-1"></i> Đăng ký
+                </a>
+              </div>
+            </div>
+
+            <!-- Illustration / logo box -->
+            <div class="col-md-5">
+              <div class="illu">
+                <div class="text-center">
+                  <div class="mb-2">
+                    <i class="bi bi-shield-check fs-1 text-success me-2"></i>
+                    <i class="bi bi-clipboard-data fs-1 text-primary me-2"></i>
+                    <i class="bi bi-calendar3-event fs-1 text-info"></i>
+                  </div>
+                  <div class="small text-muted">Quản trị công việc trực quan cho đội Quality ZVN</div>
+                </div>
+              </div>
+              <div class="text-center small mt-2 text-muted">
+                <i class="bi bi-shield-lock me-1"></i> Bảo mật & dễ sử dụng
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-center mt-3 small text-muted">
+          Mẹo: Sau khi đăng nhập, mở <strong>Board</strong> để tạo danh sách & task đầu tiên.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

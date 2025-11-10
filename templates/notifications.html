@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="mb-3">Notifications</h2>
+
+<form method="post" class="mb-3">
+  <input type="hidden" name="mark_read" value="1">
+  <button class="btn btn-sm btn-outline-primary">Đánh dấu tất cả đã đọc</button>
+</form>
+
+<style>
+  .notif-card { background:#fff; border-radius:14px; padding:12px; }
+  .notif-item {
+    display:flex; gap:12px; align-items:flex-start;
+    padding:12px; border:1px solid #eef0f2; border-left-width:4px; border-radius:12px;
+    margin-bottom:10px; background:#fff;
+  }
+  .notif-item.unread { border-left-color:#0d6efd; background:#f8fbff; }
+  .notif-item.read   { border-left-color:transparent; background:#fff; }
+  .dot { width:10px; height:10px; border-radius:50%; margin-top:6px; }
+  .dot-a{ background:#0d6efd }   /* assigned */
+  .dot-c{ background:#198754 }   /* completed */
+  .dot-o{ background:#dc3545 }   /* overdue */
+  .dot-x{ background:#6c757d }   /* others */
+  .meta{ font-size:.85rem; color:#6c757d }
+  .notif-actions { display:flex; gap:.4rem; }
+</style>
+
+<div class="notif-card">
+  {% for n in notifs %}
+    <div class="notif-item {{ 'unread' if not n.is_read else 'read' }}">
+      {% set dotclass = 'dot-x' %}
+      {% if n.type == 'assigned' %}{% set dotclass = 'dot-a' %}
+      {% elif n.type == 'completed' %}{% set dotclass = 'dot-c' %}
+      {% elif n.type == 'overdue' %}{% set dotclass = 'dot-o' %}
+      {% endif %}
+      <span class="dot {{ dotclass }}"></span>
+
+      <div class="flex-grow-1">
+        <div class="fw-semibold">{{ n.message }}</div>
+        <div class="meta">
+          {{ n.created_at.strftime('%Y-%m-%d %H:%M') if n.created_at }}
+          {% if n.task %} · Task: <em>{{ n.task.title }}</em>{% endif %}
+          {% if n.actor %} · bởi {{ n.actor.name }}{% endif %}
+          {% if not n.is_read %} · <span class="badge text-bg-warning">mới</span>{% endif %}
+        </div>
+      </div>
+
+      <div class="notif-actions">
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('notification_open', notif_id=n.id) }}">Xem</a>
+        <form method="post" action="{{ url_for('notification_delete', notif_id=n.id) }}">
+          <button class="btn btn-sm btn-outline-danger">Xoá</button>
+        </form>
+      </div>
+    </div>
+  {% else %}
+    <div class="text-muted">Chưa có thông báo.</div>
+  {% endfor %}
+</div>
+{% endblock %}

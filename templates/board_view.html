@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- ===== Styles (gọn – đẹp) ===== -->
+<style>
+  .page-head{
+    display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.25rem
+  }
+  .page-head-right{display:flex;align-items:center;gap:.5rem}
+  .kanban-card{border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
+  .kanban-card .card-header{background:#fff;font-weight:600;border-bottom:1px solid #eef0f2}
+  .table th{background:#f7f7f9;white-space:nowrap}
+  .table td,.table th{vertical-align:middle}
+
+  /* Form thêm task – một hàng ngang, responsive */
+  .task-inline-form{
+    display:grid;gap:.5rem;align-items:end;margin-top:.75rem;
+    grid-template-columns:1.6fr 1.2fr .9fr .9fr .9fr .6fr .9fr 1.4fr auto
+  }
+  .fi{display:flex;flex-direction:column}
+  .fi label{font-size:.8rem;color:#6c757d;margin-bottom:.25rem}
+  .assignees-select{min-height:2.7rem;max-height:7rem}
+  @media (max-width:1200px){.task-inline-form{grid-template-columns:1fr 1fr}}
+  @media (max-width:576px){.task-inline-form{grid-template-columns:1fr}}
+
+  .action-group{display:flex;gap:.4rem;justify-content:center}
+
+  /* ===== Highlight khi nhảy theo anchor (#task-123) ===== */
+  .row-highlight {
+    animation: flash 2s ease-in-out 1;
+    outline: 2px solid #0d6efd;
+    box-shadow: 0 0 0 3px rgba(13,110,253,.25);
+  }
+  @keyframes flash {
+    0% { background: #e7f1ff; }
+    100% { background: transparent; }
+  }
+</style>
+
+<!-- ===== Header (không còn nút Summary) ===== -->
+<div class="page-head">
+  <h1 class="h3 mb-0">{{ board.name }}</h1>
+  <div class="page-head-right">
+    <form method="post" class="d-flex gap-2">
+      <input type="text" class="form-control" name="list_title" placeholder="Tên danh sách mới" required style="min-width:260px">
+      <button class="btn btn-primary">Thêm danh sách</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===== Board content (full width) ===== -->
+{% for lst in board.lists %}
+<div class="card kanban-card mb-4">
+  <div class="card-header">{{ lst.title }}</div>
+  <div class="card-body">
+
+    <div class="table-responsive">
+      <table class="table table-sm table-bordered align-middle">
+        <thead>
+          <tr>
+            <th>Task name</th>
+            <th>Assignees</th>
+            <th>Start</th>
+            <th>Due</th>
+            <th>Status</th>
+            <th>%</th>
+            <th>Priority</th>
+            <th>Remark</th>
+            <th style="width:140px" class="text-center">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in lst.tasks %}
+          <!-- (5.1) GẮN ID CHO MỖI HÀNG -->
+          <tr id="task-{{ t.id }}">
+            <td class="fw-semibold">{{ t.title }}</td>
+            <td>
+              {% if t.assignees %}
+                {% for u in t.assignees %}
+                  <span class="badge bg-light text-dark border">{{ u.name }}</span>
+                {% endfor %}
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td>{{ t.start_date or '' }}</td>
+            <td>{{ t.due_date or '' }}</td>
+
+            {% set stc='secondary' %}
+            {% if t.status=='Done' %}{% set stc='success' %}{% elif t.status=='OverDue' %}{% set stc='danger' %}{% endif %}
+            <td><span class="badge bg-{{ stc }}">{{ t.status }}</span></td>
+
+            <td>{{ t.percentage }}%</td>
+
+            {% set pc='primary' %}
+            {% if t.priority=='Low' %}{% set pc='secondary' %}
+            {% elif t.priority=='High' %}{% set pc='warning' %}
+            {% elif t.priority=='Urgent' %}{% set pc='danger' %}{% endif %}
+            <td><span class="badge bg-{{ pc }}">{{ t.priority }}</span></td>
+
+            <td class="text-truncate" style="max-width:260px">{{ t.description }}</td>
+            <td>
+              <div class="action-group">
+                <form method="post" action="{{ url_for('delete_task', task_id=t.id) }}">
+  <button class="btn btn-sm btn-outline-danger"
+          onclick="return confirm('Bạn có chắc muốn xoá task “{{ t.title }}” không?');">
+    Xoá
+  </button>
+</form>
+                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editTask{{ t.id }}">
+                  Cập nhật
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Modal cập nhật -->
+          <div class="modal fade" id="editTask{{ t.id }}" tabindex="-1">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+              <div class="modal-content">
+                <form method="post" action="{{ url_for('update_task', task_id=t.id) }}">
+                  <div class="modal-header">
+                    <h5 class="modal-title">Cập nhật task: {{ t.title }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  </div>
+                  <div class="modal-body">
+                    <div class="row g-2 mb-3">
+                      <div class="col-md-6">
+                        <label class="form-label">Task name</label>
+                        <input class="form-control" name="title" value="{{ t.title }}">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Assignees</label>
+                        <select class="form-select" name="assignees" multiple size="3">
+                          {% for u in users %}
+                          <option value="{{ u.id }}" {% if u in t.assignees %}selected{% endif %}>{{ u.name }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                      <div class="col-md-3">
+                        <label class="form-label">Start date</label>
+                        <input class="form-control" type="date" name="start_date" value="{{ t.start_date }}">
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label">Due date</label>
+                        <input class="form-control" type="date" name="due_date" value="{{ t.due_date }}">
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" name="status">
+                          {% for st in ['In process','Done','OverDue'] %}
+                          <option value="{{ st }}" {% if t.status==st %}selected{% endif %}>{{ st }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label">Percentage</label>
+                        <select class="form-select" name="percentage">
+                          {% for p in [0,25,50,75,100] %}
+                          <option value="{{ p }}" {% if t.percentage==p %}selected{% endif %}>{{ p }}%</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                      <div class="col-md-4">
+                        <label class="form-label">Priority</label>
+                        <select class="form-select" name="priority">
+                          {% for pr in ['Low','Normal','High','Urgent'] %}
+                          <option value="{{ pr }}" {% if t.priority==pr %}selected{% endif %}>{{ pr }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                      <div class="col-md-8">
+                        <label class="form-label">Remark</label>
+                        <textarea class="form-control" name="description" rows="2">{{ t.description }}</textarea>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Huỷ</button>
+                    <button type="submit" class="btn btn-success">Lưu thay đổi</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <tr><td colspan="9" class="text-center text-muted">Chưa có công việc.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Form thêm task (ngang) -->
+    <form method="post" action="{{ url_for('add_task', list_id=lst.id) }}" class="task-inline-form">
+      <div class="fi"><label>Task name</label><input class="form-control" name="title" placeholder="Task name" required></div>
+      <div class="fi">
+        <label>Assignees</label>
+        <select class="form-select assignees-select" name="assignees" multiple size="3">
+          {% for u in users %}<option value="{{ u.id }}">{{ u.name }} ({{ u.email }})</option>{% endfor %}
+        </select>
+      </div>
+      <div class="fi"><label>Start date</label><input class="form-control" name="start_date" type="date"></div>
+      <div class="fi"><label>Due date</label><input class="form-control" name="due_date" type="date"></div>
+      <div class="fi"><label>Status</label>
+        <select class="form-select" name="status">
+          <option>In process</option><option>Done</option><option>OverDue</option>
+        </select>
+      </div>
+      <div class="fi"><label>%</label>
+        <select class="form-select" name="percentage">
+          <option value="0">0%</option><option value="25">25%</option><option value="50">50%</option><option value="75">75%</option><option value="100">100%</option>
+        </select>
+      </div>
+      <div class="fi"><label>Priority</label>
+        <select class="form-select" name="priority">
+          <option>Low</option><option selected>Normal</option><option>High</option><option>Urgent</option>
+        </select>
+      </div>
+      <div class="fi"><label>Remark</label>
+        <input class="form-control" name="description" placeholder="Ghi chú...">
+      </div>
+      <div class="fi"><label>&nbsp;</label><button class="btn btn-success w-100">Thêm task</button></div>
+    </form>
+
+  </div>
+</div>
+{% else %}
+<div class="text-muted">Chưa có danh sách. Thêm một danh sách mới ở phía trên.</div>
+{% endfor %}
+
+<!-- (5.2) JS tự highlight khi có anchor #task-<id> -->
+<script>
+  (function() {
+    const id = location.hash && location.hash.slice(1);
+    if (!id) return;
+    const el = document.getElementById(id);
+    if (el) {
+      el.classList.add('row-highlight');
+      setTimeout(()=> el.scrollIntoView({behavior:'smooth', block:'center'}), 50);
+      setTimeout(()=> el.classList.remove('row-highlight'), 3500);
+    }
+  })();
+</script>
+
+{% endblock %}

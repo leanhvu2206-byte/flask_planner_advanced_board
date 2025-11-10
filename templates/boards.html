@@ -1,0 +1,43 @@
+
+{% extends "base.html" %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Tạo Board mới</h5>
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label">Tên board</label>
+            <input class="form-control" name="name" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Mô tả</label>
+            <textarea class="form-control" rows="3" name="description"></textarea>
+          </div>
+          <button class="btn btn-primary w-100">Tạo</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-8">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Boards của tôi</h5>
+        <div class="list-group">
+          {% for b in boards %}
+          <a class="list-group-item list-group-item-action" href="{{ url_for('view_board', board_id=b.id) }}">
+            <div class="d-flex w-100 justify-content-between">
+              <h6 class="mb-1">{{ b.name }}</h6>
+            </div>
+            <small class="text-muted">{{ b.description }}</small>
+          </a>
+          {% else %}
+          <div class="text-muted">Chưa có board nào.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
