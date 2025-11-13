@@ -28,73 +28,224 @@
     background: #fff;
     border-radius: 16px;
     box-shadow: 0 4px 18px rgba(0,0,0,0.06);
-    padding: 18px;
+    padding: 16px;
+    height: 260px;              /* làm khung nhỏ gọn */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .chart-card canvas{
+    max-height: 190px;          /* thu nhỏ area biểu đồ */
   }
 
   .section-title{font-weight:700}
   .subhead{font-size:.8rem;color:#6c757d}
+
+  /* Tooltip & dark mode friendly */
+  @media (prefers-color-scheme: dark) {
+    body {
+      background: radial-gradient(circle at top, #1f2937, #020617);
+      color: #e5e7eb;
+    }
+    .card, .chart-card {
+      background: #0b1120;
+      color:#e5e7eb;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.7);
+    }
+    .list-group-item {
+      background-color:#020617;
+      color:#e5e7eb;
+    }
+  }
 </style>
 
 <div class="quality-watermark">🧪</div>
 
 <h2 class="mb-3">Dashboard - Quality ZVN</h2>
 
-<div class="row g-3">
+<div class="row g-3 mt-3">
 
   <!-- ==== BOARDS ==== -->
-  <div class="col-lg-6">
-    <div class="card">
+  <div class="col-lg-4">
+    <div class="card h-100">
       <div class="card-body">
-        <div class="d-flex justify-content-between align-items-end">
-          <div>
-            <div class="section-title">Boards của bạn</div>
-            <div class="subhead">Danh sách board bạn sở hữu</div>
-          </div>
-          <a class="btn btn-primary btn-sm" href="{{ url_for('boards_page') }}">Tạo / mở Board</a>
-        </div>
-        <hr>
+        <div class="section-title">Boards của bạn</div>
+        <div class="subhead mb-2">Danh sách board bạn sở hữu</div>
+
         <ul class="list-group list-group-flush">
           {% for b in boards %}
-          <li class="list-group-item">
-            <a href="{{ url_for('view_board', board_id=b.id) }}" class="fw-semibold">{{ b.name }}</a>
-          </li>
+            <li class="list-group-item">
+              <a href="{{ url_for('view_board', board_id=b.id) }}" class="fw-semibold">{{ b.name }}</a>
+            </li>
           {% else %}
-          <li class="list-group-item text-muted">Chưa có board nào.</li>
+            <li class="list-group-item text-muted">Chưa có board nào.</li>
           {% endfor %}
         </ul>
+
+        <a class="btn btn-primary btn-sm mt-3" href="{{ url_for('boards_page') }}">Tạo / mở Board</a>
       </div>
     </div>
   </div>
 
-  <!-- ==== UPCOMING ==== -->
-  <div class="col-lg-6">
-    <div class="card">
+<!-- ==== UPCOMING – SẮP ĐẾN HẠN ==== -->
+<style>
+  .upcoming-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+
+  .upcoming-table thead {
+    background: #f1f5ff;
+  }
+
+  .upcoming-table th {
+    padding: 10px;
+    font-weight: 700;
+    text-align: left;
+    color: #3b4a67;
+  }
+
+  .upcoming-table tbody tr {
+    border-bottom: 1px solid #e9ecef;
+    transition: background 0.2s ease;
+  }
+
+  .upcoming-table tbody tr:hover {
+    background: #f8fbff;
+  }
+
+  .upcoming-table td {
+    padding: 10px;
+    vertical-align: middle;
+  }
+
+  .status-badge {
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .status-process { background: #0d6efd; }
+  .status-done    { background: #198754; }
+  .status-overdue { background: #dc3545; }
+
+  .due-badge {
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .due-far {
+    background: #e7f7ed;
+    color: #157347;
+  }
+  .due-soon {
+    background: #fff3cd;
+    color: #b26a00;
+  }
+  .due-overdue {
+    background: #fde2e1;
+    color: #b02a37;
+  }
+
+  .assignee-chip {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    margin-right: 4px;
+    display: inline-block;
+  }
+
+  .upcoming-link {
+    color: #0d6efd;
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .upcoming-link:hover { text-decoration: underline; }
+</style>
+
+<!-- Cột Sắp đến hạn -->
+  <div class="col-lg-8">
+    <div class="card h-100">
       <div class="card-body">
         <div class="section-title">Sắp đến hạn</div>
-        <div class="subhead mb-2">Hiển thị các task có ngày Due gần nhất</div>
+        <div class="subhead mb-3">
+          Hiển thị các task được ưu tiên theo trạng thái
+          (<span class="text-danger fw-semibold">OverDue</span> → In process → Done)
+          và ngày Due gần nhất.
+        </div>
 
-        <ul class="list-group list-group-flush">
-          {% for t in upcoming %}
-          <li class="list-group-item d-flex align-items-center justify-content-between">
-            <div class="fw-semibold">{{ t.title }}</div>
-            <span>{{ t.due_date }}</span>
-            <span class="badge bg-info">{{ t.status }}</span>
-            <span>
-              {% for u in t.assignees %}
-              <span class="badge bg-light text-dark border">{{ u.name }}</span>
+        <!-- Bảng nhiệm vụ -->
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Task</th>
+                <th>Due date</th>
+                <th>Status</th>
+                <th>Assignees</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for t in upcoming %}
+              <tr>
+                <td class="fw-semibold">{{ t.title }}</td>
+
+                <!-- Due date -->
+                <td>
+                  {% if t.status == 'OverDue' %}
+                    <span class="badge bg-danger-subtle text-danger">⏰ {{ t.due_date }}</span>
+                  {% else %}
+                    <span class="badge bg-warning-subtle text-dark">📅 {{ t.due_date }}</span>
+                  {% endif %}
+                </td>
+
+                <!-- Status -->
+                <td>
+                  {% if t.status == 'Done' %}
+                    <span class="badge bg-success">✔ Done</span>
+                  {% elif t.status == 'In process' %}
+                    <span class="badge bg-primary">⏳ In process</span>
+                  {% else %}
+                    <span class="badge bg-danger">❗ OverDue</span>
+                  {% endif %}
+                </td>
+
+                <!-- Assignees -->
+                <td>
+                  {% for u in t.assignees %}
+                    <span class="badge bg-light text-dark border">{{ u.name }}</span>
+                  {% endfor %}
+                </td>
+
+                <td>
+                  <a href="{{ url_for('view_board', board_id=t.list.board_id) }}">Xem</a>
+                </td>
+              </tr>
               {% endfor %}
-            </span>
-            <a href="{{ url_for('view_board', board_id=t.list.board_id) }}">Xem</a>
-          </li>
-          {% else %}
-          <li class="list-group-item text-muted">Không có task đến hạn.</li>
-          {% endfor %}
-        </ul>
+            </tbody>
+          </table>
+        </div>
 
       </div>
     </div>
   </div>
+
 </div>
+
 
 
 <!-- ===== BIỂU ĐỒ ===== -->
@@ -103,47 +254,85 @@
 <div class="row g-3">
 
   <!-- Pie chart trạng thái -->
-  <div class="col-md-6">
+  <div class="col-md-4">
     <div class="chart-card">
-      <h5>Phân bố trạng thái công việc</h5>
+      <div>
+        <h6 class="mb-1">Phân bố trạng thái</h6>
+        <div class="subhead">In process / Done / OverDue</div>
+      </div>
       <canvas id="pieStatus"></canvas>
     </div>
   </div>
 
   <!-- Pie chart tiến độ -->
-  <div class="col-md-6">
+  <div class="col-md-4">
     <div class="chart-card">
-      <h5>Tỷ lệ hoàn thành</h5>
+      <div>
+        <h6 class="mb-1">Tỷ lệ hoàn thành</h6>
+        <div class="subhead">% Done vs % còn lại</div>
+      </div>
       <canvas id="pieProgress"></canvas>
     </div>
   </div>
 
-  <!-- Bar chart -->
-  <div class="col-md-6">
+  <!-- Bar chart tổng theo người -->
+  <div class="col-md-4">
     <div class="chart-card">
-      <h5>Người có nhiều task Done nhất</h5>
+      <div>
+        <h6 class="mb-1">Tổng số task theo người</h6>
+        <div class="subhead">Sắp xếp theo số lượng task</div>
+      </div>
+      <canvas id="barTotal"></canvas>
+    </div>
+  </div>
+
+  <!-- Bar chart Done / Inprocess / Overdue -->
+  <div class="col-md-4">
+    <div class="chart-card">
+      <div>
+        <h6 class="mb-1">Người có nhiều task Done</h6>
+      </div>
       <canvas id="barDone"></canvas>
     </div>
   </div>
 
-  <div class="col-md-6">
+  <div class="col-md-4">
     <div class="chart-card">
-      <h5>Người có nhiều task In Process nhất</h5>
+      <div>
+        <h6 class="mb-1">Người có nhiều task In Process</h6>
+      </div>
       <canvas id="barProcess"></canvas>
     </div>
   </div>
 
-  <div class="col-md-6">
+  <div class="col-md-4">
     <div class="chart-card">
-      <h5>Người có nhiều task OverDue nhất</h5>
+      <div>
+        <h6 class="mb-1">Người có nhiều task OverDue</h6>
+      </div>
       <canvas id="barOverdue"></canvas>
     </div>
   </div>
 
+  <!-- So sánh theo tháng -->
   <div class="col-md-6">
     <div class="chart-card">
-      <h5>Tổng số task theo người</h5>
-      <canvas id="barTotal"></canvas>
+      <div>
+        <h6 class="mb-1">So sánh theo tháng</h6>
+        <div class="subhead">Số task Done mỗi tháng (6 tháng gần nhất)</div>
+      </div>
+      <canvas id="lineMonthly"></canvas>
+    </div>
+  </div>
+
+  <!-- Gantt "giả" timeline -->
+  <div class="col-md-6">
+    <div class="chart-card">
+      <div>
+        <h6 class="mb-1">Timeline (Gantt) - các task gần đây</h6>
+        <div class="subhead">Độ dài task (ngày) từ Start đến Due</div>
+      </div>
+      <canvas id="ganttChart"></canvas>
     </div>
   </div>
 
@@ -163,53 +352,192 @@
   const overdueData = {{ user_stats | map(attribute='overdue') | list | tojson }};
   const totalData = {{ user_stats | map(attribute='total') | list | tojson }};
 
+  /* Dữ liệu so sánh theo tháng & gantt (có thể chưa có, dùng default []) */
+  const monthLabels = {{ month_labels|default([], true)|tojson }};
+  const monthDone = {{ month_done|default([], true)|tojson }};
+
+  const ganttLabels = {{ gantt_labels|default([], true)|tojson }};
+  const ganttDurations = {{ gantt_durations|default([], true)|tojson }};   // số ngày
+  const ganttHints = {{ gantt_hints|default([], true)|tojson }};           // "2025-11-01 → 2025-11-05"
+
+  /* ==== Common options: dark / light mode ==== */
+  const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const baseTextColor = isDark ? '#e5e7eb' : '#212529';
+  const gridColor = isDark ? 'rgba(148,163,184,0.3)' : 'rgba(148,163,184,0.4)';
+  const tooltipBg = isDark ? '#020617' : '#111827';
+
+  function withBaseOptions(config) {
+    const base = {
+      plugins: {
+        legend: {
+          labels: { color: baseTextColor, font: { size: 11 } }
+        },
+        tooltip: {
+          backgroundColor: tooltipBg,
+          titleColor: '#f9fafb',
+          bodyColor: '#e5e7eb',
+          borderColor: 'rgba(148,163,184,0.4)',
+          borderWidth: 1,
+        }
+      },
+      animation: {
+        duration: 900,
+        easing: 'easeOutCubic'
+      },
+      scales: {
+        x: {
+          ticks: { color: baseTextColor, maxRotation: 45, minRotation: 0 },
+          grid: { color: gridColor }
+        },
+        y: {
+          ticks: { color: baseTextColor },
+          grid: { color: gridColor },
+          beginAtZero: true
+        }
+      }
+    };
+    config.options = config.options ? {...base, ...config.options} : base;
+    return config;
+  }
+
   /* ===== PIE CHART 1 ===== */
-  new Chart(document.getElementById('pieStatus'), {
-    type: 'pie',
-    data: {
-      labels: ['In Process', 'Done', 'OverDue'],
-      datasets: [{
-        data: [inprocess, done, overdue],
-        backgroundColor: ['#0d6efd', '#198754', '#dc3545']
-      }]
-    }
-  });
-
-  /* ===== PIE CHART 2 ===== */
-  new Chart(document.getElementById('pieProgress'), {
-    type: 'doughnut',
-    data: {
-      labels: ['Hoàn thành', 'Còn lại'],
-      datasets: [{
-        data: [percent_done, percent_inprocess],
-        backgroundColor: ['#198754', '#ffc107']
-      }]
-    }
-  });
-
-  /* ===== BAR CHART ===== */
-  function makeBar(id, data, color) {
-    new Chart(document.getElementById(id), {
-      type: 'bar',
+  new Chart(
+    document.getElementById('pieStatus'),
+    withBaseOptions({
+      type: 'pie',
       data: {
-        labels: userNames,
+        labels: ['In Process', 'Done', 'OverDue'],
         datasets: [{
-          data: data,
-          backgroundColor: color
+          data: [inprocess, done, overdue],
+          backgroundColor: ['#0d6efd', '#198754', '#dc3545']
         }]
       },
       options: {
-        responsive:true,
-        scales:{y:{beginAtZero:true}},
-        plugins:{legend:{display:false}}
+        plugins: {
+          legend: { position: 'bottom' }
+        },
+        animation: { animateScale: true, animateRotate: true }
       }
-    });
+    })
+  );
+
+  /* ===== PIE CHART 2 ===== */
+  new Chart(
+    document.getElementById('pieProgress'),
+    withBaseOptions({
+      type: 'doughnut',
+      data: {
+        labels: ['Hoàn thành', 'Còn lại'],
+        datasets: [{
+          data: [percent_done, percent_inprocess],
+          backgroundColor: ['#198754', '#ffc107']
+        }]
+      },
+      options: {
+        cutout: '60%',
+        plugins: {
+          legend: { position: 'bottom' },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => `${ctx.label}: ${ctx.parsed.toFixed(1)}%`
+            }
+          }
+        }
+      }
+    })
+  );
+
+  /* ===== BAR CHART helper ===== */
+  function makeBar(id, label, data, color){
+    const el = document.getElementById(id);
+    if (!el) return;
+    new Chart(
+      el,
+      withBaseOptions({
+        type: 'bar',
+        data: {
+          labels: userNames,
+          datasets: [{
+            label: label,
+            data: data,
+            backgroundColor: color,
+            borderRadius: 6
+          }]
+        },
+        options: {
+          plugins: {
+            legend: { display:false }
+          }
+        }
+      })
+    );
   }
 
-  makeBar("barDone", doneData, "#198754");
-  makeBar("barProcess", processData, "#0d6efd");
-  makeBar("barOverdue", overdueData, "#dc3545");
-  makeBar("barTotal", totalData, "#6f42c1");
+  makeBar("barDone", "Done", doneData, "#198754");
+  makeBar("barProcess", "In process", processData, "#0d6efd");
+  makeBar("barOverdue", "OverDue", overdueData, "#dc3545");
+  makeBar("barTotal", "Total", totalData, "#6f42c1");
+
+  /* ===== LINE – SO SÁNH THEO THÁNG ===== */
+  if (monthLabels.length && monthDone.length){
+    new Chart(
+      document.getElementById('lineMonthly'),
+      withBaseOptions({
+        type: 'line',
+        data: {
+          labels: monthLabels,
+          datasets: [{
+            label: 'Task Done',
+            data: monthDone,
+            borderColor: '#22c55e',
+            backgroundColor: 'rgba(34,197,94,.25)',
+            tension: 0.35,
+            fill: true,
+            pointRadius: 4,
+            pointHoverRadius: 5
+          }]
+        },
+        options: {
+          plugins: {
+            legend: { display:true }
+          }
+        }
+      })
+    );
+  }
+
+  /* ===== GANTT "GIẢ" ===== */
+  if (ganttLabels.length && ganttDurations.length){
+    new Chart(
+      document.getElementById('ganttChart'),
+      withBaseOptions({
+        type: 'bar',
+        data: {
+          labels: ganttLabels,
+          datasets: [{
+            label: 'Số ngày thực hiện',
+            data: ganttDurations,
+            backgroundColor: '#0dcaf0',
+            borderRadius: 6
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: function(ctx){
+                  const d = ctx.parsed.x;
+                  const hint = ganttHints[ctx.dataIndex] || '';
+                  return ` ${d} ngày ${hint ? '('+hint+')' : ''}`;
+                }
+              }
+            }
+          }
+        }
+      })
+    );
+  }
 </script>
 
 {% endblock %}

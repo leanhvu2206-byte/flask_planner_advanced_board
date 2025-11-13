@@ -9,6 +9,7 @@
             <th>#</th>
             <th>Tên</th>
             <th>Email</th>
+            <th>Role</th>
             <th class="text-center" style="width:120px">Thao tác</th>
           </tr>
         </thead>
@@ -18,7 +19,17 @@
             <td>{{ loop.index }}</td>
             <td>{{ u.name }}</td>
             <td>{{ u.email }}</td>
+            <td>
+              {% if u.role == 'owner' %}
+                <span class="badge bg-dark">Owner</span>
+              {% elif u.role == 'admin' %}
+                <span class="badge bg-primary">Admin</span>
+              {% else %}
+                <span class="badge bg-secondary">Staff</span>
+              {% endif %}
+            </td>
             <td class="text-center">
+              {% if current_user.role in ['owner', 'admin'] and u.id != current_user.id %}
               <form method="post"
                     action="{{ url_for('delete_member', user_id=u.id) }}"
                     onsubmit="return confirm('Bạn có chắc muốn xoá thành viên {{ u.name }} không?');">
@@ -26,10 +37,11 @@
                   Xoá
                 </button>
               </form>
+              {% endif %}
             </td>
           </tr>
           {% else %}
-          <tr><td colspan="4" class="text-muted text-center">Chưa có thành viên nào.</td></tr>
+          <tr><td colspan="5" class="text-muted text-center">Chưa có thành viên nào.</td></tr>
           {% endfor %}
         </tbody>
       </table>
