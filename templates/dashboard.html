@@ -1,44 +1,47 @@
 {% extends "base.html" %}
 {% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-  /* ===== Background động theo chủ đề quality ===== */
+  /* ===== Background động đẹp chuyên nghiệp ===== */
   body {
-    --bg1:#f7fbff; --bg2:#eef6ff; --bg3:#f5fff7;
-    background:
-      radial-gradient(1200px 600px at 10% -10%, var(--bg2) 0%, transparent 60%),
-      radial-gradient(1000px 500px at 120% 10%, var(--bg3) 0%, transparent 60%),
-      linear-gradient(120deg, var(--bg1), #ffffff);
-    animation: bgMove 14s ease-in-out infinite alternate;
+    background: linear-gradient(135deg, #eef6ff, #ffffff, #e8f7f2);
+    background-size: 400% 400%;
+    animation: gradientBG 12s ease infinite;
   }
-  @keyframes bgMove {
-    0% { background-position: 0 0, 0 0, 0 0; }
-    100% { background-position: 10% 2%, -5% 6%, 0 0; }
-  }
-  /* watermark icon mờ (check/lab) */
-  .quality-watermark{
-    position: fixed; inset:auto 10px 10px auto; pointer-events:none; opacity:.08;
-    font-size:84px; filter: blur(.3px);
+  @keyframes gradientBG {
+    0% {background-position: 0% 50%;}
+    50% {background-position: 100% 50%;}
+    100% {background-position: 0% 50%;}
   }
 
-  .card{border-radius:14px; box-shadow:0 2px 10px rgba(0,0,0,.04)}
-  .list-group-item{display:flex; align-items:center; gap:.5rem}
-  .pill{padding:.2rem .5rem; border-radius:999px; font-size:.75rem; border:1px solid #e9ecef; background:#fff}
-  .pill-date{background:#fff3cd;border-color:#ffe69c}
-  .pill-status{background:#eef2ff;border-color:#dde1ff}
-  .assignee-badge{background:#f8f9fa;border:1px solid #e9ecef; border-radius:999px; padding:.15rem .5rem; font-size:.75rem}
-  .item-title{font-weight:600; flex:1}
-  .meta-col{display:flex; align-items:center; gap:.35rem; flex-wrap:wrap}
+  .quality-watermark{
+    position: fixed;
+    bottom: 15px;
+    right: 15px;
+    opacity: 0.05;
+    font-size: 110px;
+    pointer-events: none;
+  }
+
+  .chart-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.06);
+    padding: 18px;
+  }
+
   .section-title{font-weight:700}
-  .subhead{font-size:.8rem; color:#6c757d}
+  .subhead{font-size:.8rem;color:#6c757d}
 </style>
 
-<div class="quality-watermark">✅🧪</div>
+<div class="quality-watermark">🧪</div>
 
-<h2 class="mb-3">Dashboard</h2>
+<h2 class="mb-3">Dashboard - Quality ZVN</h2>
 
 <div class="row g-3">
-  <!-- Boards -->
+
+  <!-- ==== BOARDS ==== -->
   <div class="col-lg-6">
     <div class="card">
       <div class="card-body">
@@ -53,7 +56,7 @@
         <ul class="list-group list-group-flush">
           {% for b in boards %}
           <li class="list-group-item">
-            <a href="{{ url_for('view_board', board_id=b.id) }}" class="item-title">{{ b.name }}</a>
+            <a href="{{ url_for('view_board', board_id=b.id) }}" class="fw-semibold">{{ b.name }}</a>
           </li>
           {% else %}
           <li class="list-group-item text-muted">Chưa có board nào.</li>
@@ -63,55 +66,150 @@
     </div>
   </div>
 
-  <!-- Upcoming -->
+  <!-- ==== UPCOMING ==== -->
   <div class="col-lg-6">
     <div class="card">
       <div class="card-body">
         <div class="section-title">Sắp đến hạn</div>
         <div class="subhead mb-2">Hiển thị các task có ngày Due gần nhất</div>
-        <div class="d-flex fw-semibold text-secondary small mb-2" style="gap:8px">
-          <div class="flex-grow-1">Task</div>
-          <div style="width:170px">Due / Status</div>
-          <div style="min-width:220px">Assignees</div>
-          <div style="width:60px"></div>
-        </div>
+
         <ul class="list-group list-group-flush">
           {% for t in upcoming %}
-          <li class="list-group-item">
-            <!-- Title -->
-            <div class="item-title">{{ t.title }}</div>
-
-            <!-- Due + Status -->
-            <div class="meta-col" style="width:170px">
-              {% if t.due_date %}<span class="pill pill-date">{{ t.due_date }}</span>{% endif %}
-              {% set stc='secondary' %}
-              {% if t.status=='Done' %}{% set stc='success' %}{% elif t.status=='OverDue' %}{% set stc='danger' %}{% endif %}
-              <span class="pill pill-status text-{{ stc }}">{{ t.status }}</span>
-            </div>
-
-            <!-- Assignees -->
-            <div class="meta-col" style="min-width:220px">
-              {% if t.assignees %}
-                {% for u in t.assignees %}
-                  <span class="assignee-badge" title="{{ u.email }}">{{ u.name }}</span>
-                {% endfor %}
-              {% else %}
-                  <span class="text-muted small">—</span>
-              {% endif %}
-            </div>
-
-            <!-- Link -->
-            <div style="width:60px" class="text-end">
-              <a href="{{ url_for('view_board', board_id=t.list.board_id) if t.list else url_for('dashboard') }}">Xem</a>
-            </div>
+          <li class="list-group-item d-flex align-items-center justify-content-between">
+            <div class="fw-semibold">{{ t.title }}</div>
+            <span>{{ t.due_date }}</span>
+            <span class="badge bg-info">{{ t.status }}</span>
+            <span>
+              {% for u in t.assignees %}
+              <span class="badge bg-light text-dark border">{{ u.name }}</span>
+              {% endfor %}
+            </span>
+            <a href="{{ url_for('view_board', board_id=t.list.board_id) }}">Xem</a>
           </li>
           {% else %}
           <li class="list-group-item text-muted">Không có task đến hạn.</li>
           {% endfor %}
         </ul>
+
       </div>
     </div>
   </div>
 </div>
+
+
+<!-- ===== BIỂU ĐỒ ===== -->
+<h3 class="mt-4 mb-2">📊 Biểu đồ thống kê tổng hợp</h3>
+
+<div class="row g-3">
+
+  <!-- Pie chart trạng thái -->
+  <div class="col-md-6">
+    <div class="chart-card">
+      <h5>Phân bố trạng thái công việc</h5>
+      <canvas id="pieStatus"></canvas>
+    </div>
+  </div>
+
+  <!-- Pie chart tiến độ -->
+  <div class="col-md-6">
+    <div class="chart-card">
+      <h5>Tỷ lệ hoàn thành</h5>
+      <canvas id="pieProgress"></canvas>
+    </div>
+  </div>
+
+  <!-- Bar chart -->
+  <div class="col-md-6">
+    <div class="chart-card">
+      <h5>Người có nhiều task Done nhất</h5>
+      <canvas id="barDone"></canvas>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="chart-card">
+      <h5>Người có nhiều task In Process nhất</h5>
+      <canvas id="barProcess"></canvas>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="chart-card">
+      <h5>Người có nhiều task OverDue nhất</h5>
+      <canvas id="barOverdue"></canvas>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="chart-card">
+      <h5>Tổng số task theo người</h5>
+      <canvas id="barTotal"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  /* ==== DATA BÊN FLASK ===== */
+  const inprocess = {{ total_inprocess }};
+  const done = {{ total_done }};
+  const overdue = {{ total_overdue }};
+  const percent_done = {{ percent_done }};
+  const percent_inprocess = {{ percent_inprocess }};
+
+  const userNames = {{ user_stats | map(attribute='name') | list | tojson }};
+  const doneData = {{ user_stats | map(attribute='done') | list | tojson }};
+  const processData = {{ user_stats | map(attribute='inprocess') | list | tojson }};
+  const overdueData = {{ user_stats | map(attribute='overdue') | list | tojson }};
+  const totalData = {{ user_stats | map(attribute='total') | list | tojson }};
+
+  /* ===== PIE CHART 1 ===== */
+  new Chart(document.getElementById('pieStatus'), {
+    type: 'pie',
+    data: {
+      labels: ['In Process', 'Done', 'OverDue'],
+      datasets: [{
+        data: [inprocess, done, overdue],
+        backgroundColor: ['#0d6efd', '#198754', '#dc3545']
+      }]
+    }
+  });
+
+  /* ===== PIE CHART 2 ===== */
+  new Chart(document.getElementById('pieProgress'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Hoàn thành', 'Còn lại'],
+      datasets: [{
+        data: [percent_done, percent_inprocess],
+        backgroundColor: ['#198754', '#ffc107']
+      }]
+    }
+  });
+
+  /* ===== BAR CHART ===== */
+  function makeBar(id, data, color) {
+    new Chart(document.getElementById(id), {
+      type: 'bar',
+      data: {
+        labels: userNames,
+        datasets: [{
+          data: data,
+          backgroundColor: color
+        }]
+      },
+      options: {
+        responsive:true,
+        scales:{y:{beginAtZero:true}},
+        plugins:{legend:{display:false}}
+      }
+    });
+  }
+
+  makeBar("barDone", doneData, "#198754");
+  makeBar("barProcess", processData, "#0d6efd");
+  makeBar("barOverdue", overdueData, "#dc3545");
+  makeBar("barTotal", totalData, "#6f42c1");
+</script>
 
 {% endblock %}

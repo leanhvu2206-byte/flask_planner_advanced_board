@@ -7,6 +7,7 @@ from datetime import date, datetime
 import os
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
+from sqlalchemy import func, case
 
 def parse_date(value):
     """Chuyển chuỗi ngày (yyyy-mm-dd) thành đối tượng date, nếu không hợp lệ thì trả None"""
@@ -150,18 +151,52 @@ def index():
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    boards = Board.query.filter((Board.owner_id==current_user.id) | (Board.owner_id.is_(None))).all()
+    boards = Board.query.filter_by(owner_id=current_user.id).all()
+
     upcoming = (
-        Task.query.options(
-            joinedload(Task.assignees),
-            joinedload(Task.list).joinedload(List.board)
-        )
-        .filter(Task.due_date.isnot(None))
+        Task.query.filter(Task.due_date.isnot(None))
         .order_by(Task.due_date.asc())
-        .limit(8)
+        .limit(5)
         .all()
     )
-    return render_template("dashboard.html", name=current_user.name, boards=boards, upcoming=upcoming)
+
+    # --- Chart data ---
+    total_inprocess = Task.query.filter_by(status="In process").count()
+    total_done = Task.query.filter_by(status="Done").count()
+    total_overdue = Task.query.filter_by(status="OverDue").count()
+
+    user_stats = (
+        db.session.query(
+            User.name,
+            func.count(Task.id).label("total"),
+            func.sum(case((Task.status=="Done",1), else_=0)).label("done"),
+            func.sum(case((Task.status=="In process",1), else_=0)).label("inprocess"),
+            func.sum(case((Task.status=="OverDue",1), else_=0)).label("overdue")
+        )
+        .join(task_assignees, task_assignees.c.user_id==User.id)
+        .join(Task, task_assignees.c.task_id==Task.id)
+        .group_by(User.name)
+        .order_by(func.count(Task.id).desc())
+        .all()
+    )
+
+    total_assigned = sum(u.total for u in user_stats)
+    total_done_all = sum(u.done for u in user_stats)
+
+    percent_done = round((total_done_all/total_assigned*100),1) if total_assigned else 0
+    percent_inprocess = 100 - percent_done
+
+    return render_template(
+        "dashboard.html",
+        boards=boards,
+        upcoming=upcoming,
+        total_inprocess=total_inprocess,
+        total_done=total_done,
+        total_overdue=total_overdue,
+        user_stats=user_stats,
+        percent_done=percent_done,
+        percent_inprocess=percent_inprocess
+    )
 
 @app.route("/boards", methods=["GET", "POST"], endpoint="boards_page")
 @login_required
@@ -597,3 +632,7 @@ if __name__ == "__main__":
     with app.app_context():
         db.create_all()
     app.run(host="0.0.0.0", port=5000, debug=True)
+if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
+    app.run(debug=True)
