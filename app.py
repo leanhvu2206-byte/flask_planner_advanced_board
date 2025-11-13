@@ -494,11 +494,34 @@ def update_task(task_id):
 
 
 
-@app.route("/members")
+@app.route("/members/<int:user_id>/delete", methods=["POST"])
 @login_required
-def members():
-    users = User.query.order_by(User.name.asc()).all()
-    return render_template("members.html", users=users)
+def delete_member(user_id):
+    # chỉ owner / admin mới được xoá thành viên
+    if current_user.role not in ("owner", "admin"):
+        flash("Bạn không có quyền xoá thành viên.", "danger")
+        return redirect(url_for("members"))
+
+    user = User.query.get_or_404(user_id)
+
+    # (tuỳ chọn) Không cho xoá chính mình nếu là owner duy nhất
+    # if user.id == current_user.id and current_user.role == "owner":
+    #     flash("Không thể tự xoá tài khoản owner đang đăng nhập.", "warning")
+    #     return redirect(url_for("members"))
+
+    # Nếu còn task liên quan, có thể chặn xoá để tránh lỗi FK
+    has_created_tasks = Task.query.filter_by(created_by_id=user.id).first()
+    has_assigned_tasks = Task.query.join(Task.assignees).filter(User.id == user.id).first()
+
+    if has_created_tasks or has_assigned_tasks:
+        flash("Không thể xoá vì user vẫn đang gắn với các task.", "warning")
+        return redirect(url_for("members"))
+
+    db.session.delete(user)
+    db.session.commit()
+    flash("Đã xoá thành viên.", "success")
+    return redirect(url_for("members"))
+
 
 @app.route("/calendar")
 @login_required
