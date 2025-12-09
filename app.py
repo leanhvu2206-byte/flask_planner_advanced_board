@@ -680,43 +680,43 @@ def my_tasks():
 @app.route("/all_tasks")
 @login_required
 def all_tasks():
+    keyword = request.args.get("keyword", "").strip()
+    status = request.args.get("status", "").strip()
+    date_from = request.args.get("from", "").strip()
+    date_to = request.args.get("to", "").strip()
     assignee_filter = request.args.get("assignee", "").strip()
-    status_filter = request.args.get("status", "").strip()
-    name_filter = request.args.get("name", "").strip()
-    due_filter = request.args.get("due", "").strip()
 
     query = Task.query.join(List).join(Board)
 
-    # Lọc theo tên
-    if name_filter:
-        query = query.filter(Task.title.ilike(f"%{name_filter}%"))
+    if keyword:
+        query = query.filter(Task.title.ilike(f"%{keyword}%"))
 
-    # Lọc theo trạng thái
-    if status_filter:
-        query = query.filter(Task.status == status_filter)
+    if status:
+        query = query.filter(Task.status == status)
 
-    # Lọc theo Assignees
+    if date_from:
+        query = query.filter(Task.due_date >= date_from)
+
+    if date_to:
+        query = query.filter(Task.due_date <= date_to)
+
     if assignee_filter:
         query = query.join(task_assignees).filter(task_assignees.c.user_id == int(assignee_filter))
 
-    # Lọc theo ngày
-    if due_filter:
-        query = query.filter(Task.due_date == due_filter)
-
     tasks = query.order_by(Task.due_date.asc().nulls_last()).all()
-
-    # Lấy danh sách users để lọc Assignees
     users = User.query.order_by(User.name.asc()).all()
 
     return render_template(
         "all_tasks.html",
         tasks=tasks,
         users=users,
+        keyword=keyword,
+        status=status,
+        date_from=date_from,
+        date_to=date_to,
         assignee_filter=assignee_filter,
-        status_filter=status_filter,
-        name_filter=name_filter,
-        due_filter=due_filter,
     )
+
 
 @app.route("/members/<int:user_id>/delete", methods=["POST"])
 @login_required

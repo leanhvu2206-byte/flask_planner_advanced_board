@@ -4,42 +4,59 @@
 <h2 class="mb-3">📋 Tất cả công việc</h2>
 
 <div class="card shadow-sm p-3 mb-3">
+  <form method="get" class="row g-2">
 
-    <form method="get" class="row g-2">
+    <!-- Tên task -->
+    <div class="col-md-3">
+      <label class="form-label">Tìm theo tên task</label>
+      <input type="text" name="keyword" class="form-control"
+             placeholder="Nhập tên task..." value="{{ keyword }}">
+    </div>
 
-        <div class="col-md-4">
-            <label class="form-label">Tìm theo tên task</label>
-            <input type="text" name="keyword" class="form-control"
-                   placeholder="Nhập tên task..." value="{{ keyword }}">
-        </div>
+    <!-- Status -->
+    <div class="col-md-2">
+      <label class="form-label">Trạng thái</label>
+      <select name="status" class="form-select">
+        <option value="">-- All --</option>
+        <option value="In process" {% if status=='In process' %}selected{% endif %}>In process</option>
+        <option value="Done" {% if status=='Done' %}selected{% endif %}>Done</option>
+        <option value="OverDue" {% if status=='OverDue' %}selected{% endif %}>OverDue</option>
+      </select>
+    </div>
 
-        <div class="col-md-3">
-    <label class="form-label">Assignee</label>
-    <select class="form-select" name="assignee">
+    <!-- Due from -->
+    <div class="col-md-2">
+      <label class="form-label">Due từ ngày</label>
+      <input type="date" name="from" class="form-control" value="{{ date_from }}">
+    </div>
+
+    <!-- Due to -->
+    <div class="col-md-2">
+      <label class="form-label">Đến ngày</label>
+      <input type="date" name="to" class="form-control" value="{{ date_to }}">
+    </div>
+
+    <!-- Assignee -->
+    <div class="col-md-3">
+      <label class="form-label">Assignee</label>
+      <select class="form-select" name="assignee">
         <option value="">-- Tất cả --</option>
         {% for u in users %}
-        <option value="{{ u.id }}" {% if assignee_filter|int == u.id %}selected{% endif %}>{{ u.name }}</option>
+        <option value="{{ u.id }}" {% if assignee_filter|int == u.id %}selected{% endif %}>
+          {{ u.name }}
+        </option>
         {% endfor %}
-    </select>
+      </select>
+    </div>
+
+    <!-- Nút Lọc -->
+    <div class="col-12 d-flex justify-content-end mt-2">
+      <button class="btn btn-primary" type="submit">Lọc</button>
+    </div>
+
+  </form>
 </div>
 
-
-        <div class="col-md-2">
-            <label class="form-label">Due từ ngày</label>
-            <input type="date" name="from" class="form-control" value="{{ date_from }}">
-        </div>
-
-        <div class="col-md-2">
-            <label class="form-label">Đến ngày</label>
-            <input type="date" name="to" class="form-control" value="{{ date_to }}">
-        </div>
-
-        <div class="col-md-1 d-flex align-items-end">
-            <button class="btn btn-primary w-100" type="submit">Lọc</button>
-        </div>
-
-    </form>
-</div>
 
 
 <div class="card shadow-sm">
