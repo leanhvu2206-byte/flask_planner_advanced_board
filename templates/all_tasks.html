@@ -14,14 +14,15 @@
         </div>
 
         <div class="col-md-3">
-            <label class="form-label">Trạng thái</label>
-            <select name="status" class="form-select">
-                <option value="">-- All --</option>
-                <option value="In process" {% if status=='In process' %}selected{% endif %}>In process</option>
-                <option value="Done" {% if status=='Done' %}selected{% endif %}>Done</option>
-                <option value="OverDue" {% if status=='OverDue' %}selected{% endif %}>OverDue</option>
-            </select>
-        </div>
+    <label class="form-label">Assignee</label>
+    <select class="form-select" name="assignee">
+        <option value="">-- Tất cả --</option>
+        {% for u in users %}
+        <option value="{{ u.id }}" {% if assignee_filter|int == u.id %}selected{% endif %}>{{ u.name }}</option>
+        {% endfor %}
+    </select>
+</div>
+
 
         <div class="col-md-2">
             <label class="form-label">Due từ ngày</label>

@@ -680,38 +680,44 @@ def my_tasks():
 @app.route("/all_tasks")
 @login_required
 def all_tasks():
+    assignee_filter = request.args.get("assignee", "").strip()
+    status_filter = request.args.get("status", "").strip()
+    name_filter = request.args.get("name", "").strip()
+    due_filter = request.args.get("due", "").strip()
 
-    # Lấy query parameters để filter
-    keyword = request.args.get("keyword", "").strip()
-    status = request.args.get("status", "")
-    date_from = request.args.get("from", "")
-    date_to = request.args.get("to", "")
+    query = Task.query.join(List).join(Board)
 
-    tasks = Task.query
-
-    # Lọc theo tên task
-    if keyword:
-        tasks = tasks.filter(Task.title.ilike(f"%{keyword}%"))
+    # Lọc theo tên
+    if name_filter:
+        query = query.filter(Task.title.ilike(f"%{name_filter}%"))
 
     # Lọc theo trạng thái
-    if status:
-        tasks = tasks.filter(Task.status == status)
+    if status_filter:
+        query = query.filter(Task.status == status_filter)
 
-    # Lọc theo ngày start/due
-    if date_from:
-        tasks = tasks.filter(Task.due_date >= date_from)
+    # Lọc theo Assignees
+    if assignee_filter:
+        query = query.join(task_assignees).filter(task_assignees.c.user_id == int(assignee_filter))
 
-    if date_to:
-        tasks = tasks.filter(Task.due_date <= date_to)
+    # Lọc theo ngày
+    if due_filter:
+        query = query.filter(Task.due_date == due_filter)
 
-    tasks = tasks.order_by(Task.due_date.asc()).all()
+    tasks = query.order_by(Task.due_date.asc().nulls_last()).all()
 
-    return render_template("all_tasks.html",
-                           tasks=tasks,
-                           keyword=keyword,
-                           status=status,
-                           date_from=date_from,
-                           date_to=date_to)
+    # Lấy danh sách users để lọc Assignees
+    users = User.query.order_by(User.name.asc()).all()
+
+    return render_template(
+        "all_tasks.html",
+        tasks=tasks,
+        users=users,
+        assignee_filter=assignee_filter,
+        status_filter=status_filter,
+        name_filter=name_filter,
+        due_filter=due_filter,
+    )
+
 @app.route("/members/<int:user_id>/delete", methods=["POST"])
 @login_required
 def delete_member(user_id):
