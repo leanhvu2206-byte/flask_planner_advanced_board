@@ -148,55 +148,125 @@ def index():
         return redirect(url_for("dashboard"))
     return render_template("index.html")
 
+from sqlalchemy import func, case
+from datetime import date, timedelta
+
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    boards = Board.query.filter_by(owner_id=current_user.id).all()
+    boards = Board.query.filter(
+        (Board.owner_id == current_user.id) | (Board.owner_id.is_(None))
+    ).all()
 
-    upcoming = (
-        Task.query.filter(Task.due_date.isnot(None))
-        .order_by(Task.due_date.asc())
-        .limit(5)
-        .all()
+    today = date.today()
+
+    # Ưu tiên trạng thái: OverDue -> In process -> Done
+    STATUS_ORDER = {"OverDue": 0, "In process": 1, "Done": 2}
+
+    q = Task.query.filter(Task.due_date.isnot(None))
+    upcoming_all = q.all()
+
+    # Sort theo: trạng thái ưu tiên + Due date
+    upcoming_all.sort(
+        key=lambda t: (
+            STATUS_ORDER.get(t.status, 99),
+            t.due_date or date.max,
+        )
     )
 
-    # --- Chart data ---
+    upcoming = upcoming_all[:8]
+
+
+    # ==== tổng trạng thái ====
     total_inprocess = Task.query.filter_by(status="In process").count()
     total_done = Task.query.filter_by(status="Done").count()
     total_overdue = Task.query.filter_by(status="OverDue").count()
 
+    # ==== thống kê theo user ====
     user_stats = (
         db.session.query(
-            User.name,
+            User.name.label("name"),
             func.count(Task.id).label("total"),
-            func.sum(case((Task.status=="Done",1), else_=0)).label("done"),
-            func.sum(case((Task.status=="In process",1), else_=0)).label("inprocess"),
-            func.sum(case((Task.status=="OverDue",1), else_=0)).label("overdue")
+            func.sum(case((Task.status == "Done", 1), else_=0)).label("done"),
+            func.sum(case((Task.status == "In process", 1), else_=0)).label("inprocess"),
+            func.sum(case((Task.status == "OverDue", 1), else_=0)).label("overdue"),
         )
-        .join(task_assignees, task_assignees.c.user_id==User.id)
-        .join(Task, task_assignees.c.task_id==Task.id)
+        .join(task_assignees, task_assignees.c.user_id == User.id)
+        .join(Task, task_assignees.c.task_id == Task.id)
         .group_by(User.name)
         .order_by(func.count(Task.id).desc())
         .all()
     )
 
-    total_assigned = sum(u.total for u in user_stats)
-    total_done_all = sum(u.done for u in user_stats)
+    total_assigned = sum(u.total for u in user_stats) if user_stats else 0
+    total_done_all = sum(u.done for u in user_stats) if user_stats else 0
+    percent_done = round((total_done_all / total_assigned * 100), 1) if total_assigned else 0
+    percent_inprocess = round(100 - percent_done, 1) if total_assigned else 0
 
-    percent_done = round((total_done_all/total_assigned*100),1) if total_assigned else 0
-    percent_inprocess = 100 - percent_done
+    # ==== So sánh theo tháng (6 tháng gần nhất) ====
+    months = []
+    month_done = []
+    today = date.today()
+    # tạo list từ 5 tháng trước đến tháng hiện tại
+    for i in range(5, -1, -1):
+        m_year = (today.year if today.month - i > 0 else today.year - 1)
+        m_month = (today.month - i - 1) % 12 + 1
+        # khoảng đầu-cuối tháng
+        start_m = date(m_year, m_month, 1)
+        if m_month == 12:
+            end_m = date(m_year + 1, 1, 1)
+        else:
+            end_m = date(m_year, m_month + 1, 1)
+
+        cnt_done = (
+            Task.query.filter(
+                Task.status == "Done",
+                Task.due_date >= start_m,
+                Task.due_date < end_m,
+            ).count()
+        )
+
+        months.append(f"{m_month:02d}/{m_year}")
+        month_done.append(cnt_done)
+
+    # ==== Gantt: lấy ~10 task gần đây có start & due ====
+    gantt_tasks = (
+        Task.query
+        .filter(Task.start_date.isnot(None), Task.due_date.isnot(None))
+        .order_by(Task.due_date.desc())
+        .limit(10)
+        .all()
+    )
+
+    gantt_labels = []
+    gantt_durations = []
+    gantt_hints = []
+    for t in gantt_tasks:
+        days = (t.due_date - t.start_date).days
+        if days < 0:
+            days = 0
+        gantt_labels.append(t.title)
+        gantt_durations.append(days or 1)  # ít nhất 1 ngày cho dễ nhìn
+        gantt_hints.append(f"{t.start_date} → {t.due_date}")
 
     return render_template(
         "dashboard.html",
         boards=boards,
         upcoming=upcoming,
+        today=today,
         total_inprocess=total_inprocess,
         total_done=total_done,
         total_overdue=total_overdue,
         user_stats=user_stats,
         percent_done=percent_done,
-        percent_inprocess=percent_inprocess
+        percent_inprocess=percent_inprocess,
+        month_labels=months,
+        month_done=month_done,
+        gantt_labels=gantt_labels,
+        gantt_durations=gantt_durations,
+        gantt_hints=gantt_hints,
     )
+
 
 @app.route("/boards", methods=["GET", "POST"], endpoint="boards_page")
 @login_required
@@ -607,6 +677,41 @@ def my_tasks():
         from_others=from_others,
         self_assigned=self_assigned
     )
+@app.route("/all_tasks")
+@login_required
+def all_tasks():
+
+    # Lấy query parameters để filter
+    keyword = request.args.get("keyword", "").strip()
+    status = request.args.get("status", "")
+    date_from = request.args.get("from", "")
+    date_to = request.args.get("to", "")
+
+    tasks = Task.query
+
+    # Lọc theo tên task
+    if keyword:
+        tasks = tasks.filter(Task.title.ilike(f"%{keyword}%"))
+
+    # Lọc theo trạng thái
+    if status:
+        tasks = tasks.filter(Task.status == status)
+
+    # Lọc theo ngày start/due
+    if date_from:
+        tasks = tasks.filter(Task.due_date >= date_from)
+
+    if date_to:
+        tasks = tasks.filter(Task.due_date <= date_to)
+
+    tasks = tasks.order_by(Task.due_date.asc()).all()
+
+    return render_template("all_tasks.html",
+                           tasks=tasks,
+                           keyword=keyword,
+                           status=status,
+                           date_from=date_from,
+                           date_to=date_to)
 @app.route("/members/<int:user_id>/delete", methods=["POST"])
 @login_required
 def delete_member(user_id):
